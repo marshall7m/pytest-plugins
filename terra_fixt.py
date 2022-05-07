@@ -10,12 +10,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 base_dir = os.path.dirname(os.path.dirname(__file__))
 
-def pytest_addoption(parser):
-    parser.addoption("--skip-tf-init", action="store_false", help="skips initing testing Terraform module")
-    parser.addoption("--skip-tf-plan", action="store_true", help="skips planning testing Terraform module")
-    parser.addoption("--skip-tf-apply", action="store_true", help="skips applying testing Terraform module")
-    parser.addoption("--skip-tf-destroy", action="store_true", help="skips destroying testing Terraform module")
-
 def terra_version(binary, version, overwrite=False):
     '''
     Installs Terraform via tfenv or Terragrunt via tgswitch.
