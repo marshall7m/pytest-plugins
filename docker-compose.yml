@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  testing:
+    build:
+      context: ./
+    stdin_open: true
+    tty: true
+    container_name: testing_env
+    image: pytest-terratest-suite:latest
+    volumes:
+      - "$PWD:/src"
+    command: ["/bin/bash"]
