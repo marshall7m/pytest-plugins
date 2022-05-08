@@ -12,7 +12,7 @@ install_requires = ['pytest']
 
 entry_points = {
     'pytest11': [
-        'terrafixt = terra_fixt',
+        'terra_fixt = terra_fixt'
     ]
 }
 if __name__ == '__main__':
