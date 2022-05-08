@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 classifiers = [
     'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3.7'
+    'Programming Language :: Python :: 3.7',
+    "Framework :: Pytest"
 ]
 
 install_requires = ['pytest']
@@ -26,9 +27,8 @@ if __name__ == '__main__':
         url='https://github.com/marshall7m/pytest-terra-fixt',
         classifiers=classifiers,
         install_requires=install_requires,
-        py_modules=['pytest_terra_fixt'],
         entry_points=entry_points,
-        packages=find_packages()
+        py_modules=['terra_fixt']
     )
     kwargs.update()
     setup(**kwargs)
