@@ -15,12 +15,15 @@ entry_points = {
         'terra_fixt = terra_fixt'
     ]
 }
+
 if __name__ == '__main__':
     kwargs = dict(
         name='pytest-terra-fixt',
         description='Terraform fixtures for pytest',
+        version='0.1.0',
         platforms=['unix', 'linux'],
         author='Marshall Mamiya',
+        url='https://github.com/marshall7m/pytest-terra-fixt',
         classifiers=classifiers,
         install_requires=install_requires,
         py_modules=['pytest_terra_fixt'],
