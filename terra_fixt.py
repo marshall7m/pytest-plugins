@@ -5,6 +5,7 @@ import os
 import tftest
 import logging
 import shlex
+import tempfile
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -38,8 +39,7 @@ def terra_version(binary, version, overwrite=False):
         log.debug(e.stderr)
         raise e
 
-tf_versions = [pytest.param('latest')]
-@pytest.fixture(params=tf_versions, ids=[f'tf_{v.values[0]}' for v in tf_versions], scope='session')
+@pytest.fixture(scope='session')
 def terraform_version(request):
     '''Terraform version that will be installed and used'''
     terra_version('terraform', request.param, overwrite=True)
@@ -48,11 +48,21 @@ def terraform_version(request):
 @pytest.fixture(scope='session')
 def tf(request, tmp_path_factory, terraform_version):
     fixture_dir = request.param
-    fixture_prefix = os.path.basename(fixture_dir)
-    tmp_tf_data_dir = str(tmp_path_factory.mktemp(f'{fixture_prefix}-backend-'))
-    log.debug(f'Storing Terraform backend within tmp dir: {tmp_tf_data_dir}')
+    tf_data_dir = f'{tempfile.gettempdir()}/{os.path.basename(fixture_dir)}-backend'
+    
+    if os.path.exists(tf_data_dir):
+        log.info('Using existing local Terraform backend')
+    else:
+        if request.config.getoption('skip_tf_destroy'):
+            log.debug('Creating persistent Terraform backend')
+            os.mkdir(tf_data_dir)
+        else:
+            log.debug('Creating temporary Terraform backend')
+            tf_data_dir = str(tmp_path_factory.mktemp(f'{os.path.basename(fixture_dir)}-backend-'))
 
-    tf = tftest.TerraformTest(fixture_dir, env={'TF_DATA_DIR': tmp_tf_data_dir})
+    log.debug(f'Storing Terraform backend within dir: {tf_data_dir}')
+
+    tf = tftest.TerraformTest(fixture_dir, env={'TF_DATA_DIR': tf_data_dir})
 
     if request.config.getoption('skip_tf_init'):
         log.info('--skip-tf-init is set -- skipping Terraform init')
@@ -66,7 +76,7 @@ def tf(request, tmp_path_factory, terraform_version):
 def tf_plan(request, tf):
     if request.config.getoption('skip_tf_plan'):
         pytest.skip('--skip-tf-plan is set -- skipping tests depending on terraform plan')
-    yield tf.plan()
+    yield tf.plan(output=True)
 
 @pytest.fixture(scope='session')
 def tf_apply(request, tf):
@@ -79,3 +89,10 @@ def tf_apply(request, tf):
     else:
         log.info('Cleaning up Terraform resources -- running Terraform destroy')
         tf.destroy(auto_approve=True)
+
+        log.info(f'Removing Terraform backend directory: {tf.env["TF_DATA_DIR"]}')
+        shutil.rmtree(tf.env['TF_DATA_DIR'], ignore_errors=True)
+
+@pytest.fixture(scope='session')
+def tf_output(request, tf):
+    return tf.output()
