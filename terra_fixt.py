@@ -86,13 +86,9 @@ def tf_plan(request, tf):
         pytest.skip('--skip-tf-plan is set -- skipping tests depending on terraform plan')
     yield tf.plan(output=True)
 
-@pytest.fixture(scope='session')
-def tf_apply(request, tf):
-    if request.config.getoption('skip_tf_apply'):
-        pytest.skip('--skip-tf-apply is set -- skipping tests depending on terraform apply')
-    yield tf.apply(auto_approve=True)
 
-    if request.config.getoption('skip_tf_destroy'):
+def tf_destroy(skip, tf):
+    if skip:
         log.info('--skip-tf-destroy is set -- skipping Terraform destroy')
     else:
         log.info('Cleaning up Terraform resources -- running Terraform destroy')
@@ -100,6 +96,19 @@ def tf_apply(request, tf):
 
         log.info(f'Removing Terraform backend directory: {tf.env["TF_DATA_DIR"]}')
         shutil.rmtree(tf.env['TF_DATA_DIR'], ignore_errors=True)
+
+@pytest.fixture(scope='session')
+def tf_apply(request, tf):
+    if request.config.getoption('skip_tf_apply'):
+        pytest.skip('--skip-tf-apply is set -- skipping tests depending on terraform apply')
+
+    try:
+        yield tf.apply(auto_approve=True)
+    except tftest.TerraformTestError as e:
+        log.error(e, exc_info=True)
+        tf_destroy(request.config.getoption('skip_tf_destroy'), tf)
+    
+    tf_destroy(request.config.getoption('skip_tf_destroy'), tf)
 
 @pytest.fixture(scope='session')
 def tf_output(request, tf):
