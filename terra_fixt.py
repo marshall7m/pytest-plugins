@@ -78,14 +78,28 @@ def tf(request, tmp_path_factory, terraform_version):
         log.info('Running Terraform init')
         tf.setup(upgrade=True)
 
-    return tf
+    yield tf
+
+    log.debug('Running Terraform destroy')
+    tf_destroy(request.config.getoption('skip_tf_destroy'), tf)
 
 @pytest.fixture(scope='session')
 def tf_plan(request, tf):
     if request.config.getoption('skip_tf_plan'):
         pytest.skip('--skip-tf-plan is set -- skipping tests depending on terraform plan')
-    yield tf.plan(output=True)
+    response = {}
+    def _plan(update=True, **tf_vars):
+        '''
+        Returns the Terraform plan output.
+        Arguments:
+            update: If True, runs the Terraform command and returns the output. 
+                If False, returns the cached Terraform plan from the previous function call.
+        '''
+        if update:
+            response['output'] = tf.plan(output=True, tf_vars=tf_vars)
+        return response
 
+    yield _plan
 
 def tf_destroy(skip, tf):
     if skip:
@@ -102,13 +116,24 @@ def tf_apply(request, tf):
     if request.config.getoption('skip_tf_apply'):
         pytest.skip('--skip-tf-apply is set -- skipping tests depending on terraform apply')
 
-    try:
-        yield tf.apply(auto_approve=True)
-    except tftest.TerraformTestError as e:
-        log.error(e, exc_info=True)
-        tf_destroy(request.config.getoption('skip_tf_destroy'), tf)
-    
-    tf_destroy(request.config.getoption('skip_tf_destroy'), tf)
+    #TODO: figure out if tf apply handling with tf destroy is necessary
+    # if tf_apply fails on already create infrastructure that wouldn't be ideal
+    # work around would be to do conditional for if backend already exists, don't destroy
+    # only useful for case if initial creation of infrastructure
+
+    response = {}
+    def _apply(update=True, **tf_vars):
+        '''
+        Returns the Terraform apply output.
+        Arguments:
+            update: If True, runs the Terraform command and returns the output. 
+                If False, returns the cached Terraform apply output from the previous function call.
+        '''
+        if update:
+            response['output'] = tf.apply(auto_approve=True, tf_vars=tf_vars)
+        return response
+
+    yield _apply
 
 @pytest.fixture(scope='session')
 def tf_output(request, tf):
