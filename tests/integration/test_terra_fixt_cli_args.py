@@ -11,7 +11,6 @@ stream = logging.StreamHandler(sys.stdout)
 log.addHandler(stream)
 log.setLevel(logging.DEBUG)
 
-
 @patch('tftest.TerraformTest')
 def test_skip_tf_plan(mock_tf_test):
     plugin = JSONReport()
@@ -32,7 +31,7 @@ def test_skip_tf_apply(mock_tf_test):
     log.debug(f'Test Summary:\n{summary}')
 
     mock_tf_test.apply.assert_not_called()
-    # skips tf.apply() in test_apply() and test_ouput()
+    # skips tf.apply() in test_apply() and test_output()
     assert summary['skipped'] == 2
 
 @patch('tftest.TerraformTest', autospec=True)

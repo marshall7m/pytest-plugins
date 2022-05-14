@@ -63,22 +63,7 @@ def terraform_version(request):
 
 @pytest.fixture(scope='session')
 def tf(request, tmp_path_factory, terraform_version):
-    fixture_dir = request.param
-    tf_data_dir = f'{tempfile.gettempdir()}/{os.path.basename(fixture_dir)}-backend'
-    
-    if os.path.exists(tf_data_dir):
-        log.info('Using existing local Terraform backend')
-    else:
-        if request.config.getoption('skip_tf_destroy'):
-            log.debug('Creating persistent Terraform backend')
-            os.mkdir(tf_data_dir)
-        else:
-            log.debug('Creating temporary Terraform backend')
-            tf_data_dir = str(tmp_path_factory.mktemp(f'{os.path.basename(fixture_dir)}-backend-'))
-
-    log.debug(f'Storing Terraform backend within dir: {tf_data_dir}')
-
-    tf = tftest.TerraformTest(fixture_dir, env={'TF_DATA_DIR': tf_data_dir})
+    tf = tftest.TerraformTest(request.param)
 
     if request.config.getoption('skip_tf_init'):
         log.info('--skip-tf-init is set -- skipping Terraform init')
@@ -88,7 +73,6 @@ def tf(request, tmp_path_factory, terraform_version):
 
     yield tf
 
-    log.debug('Running Terraform destroy')
     tf_destroy(request.config.getoption('skip_tf_destroy'), tf)
 
 @pytest.fixture(scope='session')
@@ -116,8 +100,6 @@ def tf_destroy(skip, tf):
         log.info('Cleaning up Terraform resources -- running Terraform destroy')
         tf.destroy(auto_approve=True)
 
-        log.info(f'Removing Terraform backend directory: {tf.env["TF_DATA_DIR"]}')
-        shutil.rmtree(tf.env['TF_DATA_DIR'], ignore_errors=True)
 
 @pytest.fixture(scope='session')
 def tf_apply(request, tf):
