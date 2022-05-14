@@ -6,6 +6,7 @@ import tftest
 import logging
 import shlex
 import tempfile
+import json
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -46,6 +47,13 @@ def terra_version(binary, version, overwrite=False):
     except subprocess.CalledProcessError as e:
         log.debug(e.stderr)
         raise e
+
+def tf_vars_to_json(tf_vars:dict) -> dict:
+    for k, v in tf_vars.items():
+        if type(v) not in [str, bool, int, float]:
+            tf_vars[k] = json.dumps(v)
+
+    return tf_vars
 
 @pytest.fixture(scope='session')
 def terraform_version(request):
@@ -96,7 +104,7 @@ def tf_plan(request, tf):
                 If False, returns the cached Terraform plan from the previous function call.
         '''
         if update:
-            response['output'] = tf.plan(output=True, tf_vars=tf_vars)
+            response['output'] = tf.plan(output=True, tf_vars=tf_vars_to_json(tf_vars))
         return response
 
     yield _plan
@@ -129,8 +137,9 @@ def tf_apply(request, tf):
             update: If True, runs the Terraform command and returns the output. 
                 If False, returns the cached Terraform apply output from the previous function call.
         '''
+
         if update:
-            response['output'] = tf.apply(auto_approve=True, tf_vars=tf_vars)
+            response['output'] = tf.apply(auto_approve=True, tf_vars=tf_vars_to_json(tf_vars))
         return response
 
     yield _apply
