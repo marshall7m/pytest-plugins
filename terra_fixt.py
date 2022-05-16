@@ -62,14 +62,19 @@ def terraform_version(request):
     return request.param
 
 @pytest.fixture(scope='session')
-def tf(request, tmp_path_factory, terraform_version):
+def tf(request, terraform_version):
     tf = tftest.TerraformTest(request.param)
 
     if request.config.getoption('skip_tf_init'):
         log.info('--skip-tf-init is set -- skipping Terraform init')
     else:
+        if request.config.getoption('skip_tf_destroy'):
+            cleanup_on_exit = False
+        else:
+            cleanup_on_exit = True
+    
         log.info('Running Terraform init')
-        tf.setup(upgrade=True)
+        tf.setup(upgrade=True, cleanup_on_exit=cleanup_on_exit)
 
     yield tf
 
