@@ -1,6 +1,6 @@
 import sys
 import os
-from setuptools import setup, find_packages
+from setuptools import setup
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 classifiers = [
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     kwargs = dict(
         name='pytest-terra-fixt',
         description='Terraform fixtures for pytest',
-        version='0.1.0',
+        version='0.3.3',
         platforms=['unix', 'linux'],
         author='Marshall Mamiya',
         url='https://github.com/marshall7m/pytest-terra-fixt',
