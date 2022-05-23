@@ -13,5 +13,5 @@ __pycache__
 /package-lock.json
 /yarn.lock
 /yarn-error.log
-build/*
+/build
 /*.egg-info

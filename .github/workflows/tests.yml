@@ -23,17 +23,15 @@ on:
 
 env:
   PYTEST_ADDOPTS: --color=yes
-  PYTHON_VERSION: pypy-3.9
+  TFENV_VERSION: 2.2.2
 
 jobs:
   precommit:
     runs-on: ubuntu-latest
-    container: ghcr.io/marshall7m/terrace:v0.1.0
-    permissions:
-      id-token: write
-      contents: read
+    container: python:3.9-slim-buster
     steps:
       - uses: actions/checkout@v3
+
       - name: Hooks
         shell: bash
         run: |
@@ -41,18 +39,18 @@ jobs:
           pre-commit run --all-files
 
   unit:
-    needs: precommit
+    # needs: precommit
     runs-on: ubuntu-latest
+    container: python:3.9-slim-buster
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          architecture: x64
+
+      - name: Install deps
+        id: install
+        shell: bash
+        run: bash install.sh
 
       - name: Tests
         id: pytest
         shell: bash
-        run: |
-          bash install.sh
-          pytest -vv tests/unit
+        run: pytest -vv tests/unit
