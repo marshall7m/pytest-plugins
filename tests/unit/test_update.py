@@ -21,7 +21,7 @@ def test_plan_update(tf, tf_plan):
         log.info("Assert that fixture return value is valid")
         assert response.outputs["doo"] == "roo"
 
-        log.info('Assert both calls output are identical')
+        log.info("Assert both calls output are identical")
         assert tf_plan(update=False) == response
 
         log.info("Assert that Terraform command was called only once")
@@ -38,11 +38,12 @@ def test_apply_update(tf, tf_apply):
         tf.init()
         response = tf_apply()
 
-        log.info('Assert both calls output are identical')
+        log.info("Assert both calls output are identical")
         assert tf_apply(update=False) == response
 
         log.info("Assert that Terraform command was called only once")
         assert wrap_apply.call_count == 1
+
 
 @pytest.mark.usefixtures("tf", "terraform_version")
 def test_output_update(tf, tf_apply, tf_output):
@@ -50,7 +51,7 @@ def test_output_update(tf, tf_apply, tf_output):
     Ensure that the first call of the factory fixture runs tf.output() and
     returns a valid output and the second call returns the cached output
     """
-    log.info('Running Terraform Apply')
+    log.info("Running Terraform Apply")
     tf_apply()
 
     with patch.object(tf, "output", wraps=tf.output) as wrap_output:
@@ -59,7 +60,7 @@ def test_output_update(tf, tf_apply, tf_output):
         log.info("Assert that fixture return value is valid")
         assert response["foo"] == "bar"
 
-        log.info('Assert both calls output are identical')
+        log.info("Assert both calls output are identical")
         assert tf_output(update=False) == response
 
         log.info("Assert that Terraform command was called only once")

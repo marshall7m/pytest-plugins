@@ -109,7 +109,7 @@ def tf(request, terraform_version: str):
         tf.setup(upgrade=True, cleanup_on_exit=cleanup_on_exit)
 
     yield tf
-    
+
     log.info("Running Terraform init")
     tf.setup(upgrade=True, cleanup_on_exit=cleanup_on_exit)
     tf_destroy(request.config.getoption("skip_tf_destroy"), tf)
@@ -122,8 +122,8 @@ def tf_plan(request, tf):
             "--skip-tf-plan is set -- "  # noqa: E501
             "skipping tests depending on terraform plan",  # noqa: E501
         )
-    
-    if hasattr(request, 'param'):
+
+    if hasattr(request, "param"):
         tf_param = tftest.TerraformTest(request.param)
         yield tf_param.plan(output=True)
         # need return to separate parametrized fixture and factory fixture
@@ -170,8 +170,8 @@ def tf_apply(request, tf):
             "--skip-tf-apply is set -- "  # noqa: E501
             "skipping tests depending on terraform apply"  # noqa: E501
         )
-    
-    if hasattr(request, 'param'):
+
+    if hasattr(request, "param"):
         tf_param = tftest.TerraformTest(request.param)
         yield tf_param.apply(auto_approve=True)
         # need return to separate parametrized fixture and factory fixture
@@ -197,9 +197,10 @@ def tf_apply(request, tf):
 
     yield _apply
 
+
 @pytest.fixture(scope="session")
 def tf_output(request, tf):
-    if hasattr(request, 'param'):
+    if hasattr(request, "param"):
         tf_param = tftest.TerraformTest(request.param)
         yield tf_param.output()
         # need return to separate parametrized fixture and factory fixture
@@ -217,9 +218,7 @@ def tf_output(request, tf):
         """
         if update:
             response.clear()
-            response.append(
-                tf.output()
-            )
+            response.append(tf.output())
         return response[0]
 
     yield _output

@@ -1,11 +1,12 @@
 import os
 import pytest
 
+
 def pytest_generate_tests(metafunc):
     if "tf" in metafunc.fixturenames:
         metafunc.parametrize(
             "tf",
-            [f'{os.path.dirname(__file__)}/fixtures'],
+            [f"{os.path.dirname(__file__)}/fixtures"],
             indirect=True,
             scope="session",
         )

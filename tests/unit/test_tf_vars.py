@@ -7,6 +7,7 @@ stream = logging.StreamHandler(sys.stdout)
 log.addHandler(stream)
 log.setLevel(logging.DEBUG)
 
+
 @pytest.mark.usefixtures("tf", "terraform_version")
 def test_plan_tf_vars(tf_plan):
     """Ensure that the tf_vars argument is properly passed to tf.plan()"""
