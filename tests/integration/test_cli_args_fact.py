@@ -10,46 +10,6 @@ stream = logging.StreamHandler(sys.stdout)
 log.addHandler(stream)
 log.setLevel(logging.DEBUG)
 
-
-@patch("tftest.TerraformTest")
-def test_skip_tf_plan(mock_tf_test):
-    """
-    Ensures that the `terraform plan` command is not executed and
-    tests that depend on and/or use the tf_plan fixture are skipped
-    """
-    plugin = JSONReport()
-    os.chdir(f"{os.path.dirname(__file__)}/fixtures")
-    pytest.main(
-        ["--skip-tf-plan", "--json-report-file=none", "test_tf.py"],
-        plugins=[plugin],
-    )
-    summary = plugin.report["summary"]
-    log.debug(f"Test Summary:\n{summary}")
-
-    mock_tf_test.plan.assert_not_called()
-    assert summary["skipped"] == 1
-
-
-@patch("tftest.TerraformTest")
-def test_skip_tf_apply(mock_tf_test):
-    """
-    Ensures that the `terraform apply` command is not executed
-    and tests that depend on and/or use the tf_apply fixture are skipped
-    """
-    plugin = JSONReport()
-    os.chdir(f"{os.path.dirname(__file__)}/fixtures")
-    pytest.main(
-        ["--skip-tf-apply", "--json-report-file=none", "test_tf.py"],
-        plugins=[plugin],
-    )
-    summary = plugin.report["summary"]
-    log.debug(f"Test Summary:\n{summary}")
-
-    mock_tf_test.apply.assert_not_called()
-    # skips tf.apply() in test_apply() and test_output()
-    assert summary["skipped"] == 2
-
-
 @patch("tftest.TerraformTest")
 def test_skip_tf_destroy(mock_tf_test):
     """
@@ -66,7 +26,7 @@ def test_skip_tf_destroy(mock_tf_test):
     os.chdir(f"{os.path.dirname(__file__)}/fixtures")
 
     pytest.main(
-        ["--skip-tf-destroy", "--json-report-file=none", "test_tf.py"],
+        ["--skip-tf-destroy", "--json-report-file=none", "test_tf_fact.py"],
         plugins=[plugin],
     )
     summary = plugin.report["summary"]
@@ -91,7 +51,7 @@ def test_skip_tf_destroy_backend_preserved():
             [
                 "--skip-tf-destroy",
                 "--json-report-file=none",
-                "test_tf.py",
+                "test_tf_fact.py",
             ]
         )
         log.info(f"Assert tfstate file exists: {expected_tf_state_path}")
