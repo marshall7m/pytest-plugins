@@ -4,8 +4,7 @@ apt-get -y update
 apt-get -y install --no-install-recommends wget unzip curl git
 
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-python3 -m pip install -e .
+python3 -m pip install -e ".[testing]"
 
 wget -q -O /tmp/tfenv.tar.gz https://github.com/tfutils/tfenv/archive/refs/tags/v${TFENV_VERSION}.tar.gz
 tar -zxf /tmp/tfenv.tar.gz -C /tmp
