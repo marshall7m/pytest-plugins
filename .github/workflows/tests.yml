@@ -40,7 +40,12 @@ jobs:
 
           python3 -m pip install --upgrade pip
           python3 -m pip install pre-commit
-          git --version
+          echo $PWD
+          echo "parent dir"
+          ls -a ../
+          echo "cwd"
+          ls -a
+
           pre-commit install || cat /github/home/.cache/pre-commit/pre-commit.log
           pre-commit run --all-files
 
