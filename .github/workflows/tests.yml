@@ -41,7 +41,9 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install pre-commit
 
-          pre-commit install
+          ls -a
+          git --version
+          pre-commit install || cat /github/home/.cache/pre-commit/pre-commit.log
           pre-commit run --all-files
 
   unit:
