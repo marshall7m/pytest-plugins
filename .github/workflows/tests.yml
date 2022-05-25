@@ -28,7 +28,7 @@ env:
 jobs:
   precommit:
     runs-on: ubuntu-latest
-    container: bitnami/git:2
+    container: bitnami/git:2.35.1
     steps:
       - uses: actions/checkout@v3
 
