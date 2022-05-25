@@ -1,12 +1,10 @@
-from unittest import mock
 import pytest
 import logging
 import sys
-import os
 from unittest.mock import patch, call
-from pytest import Pytester
+
 pytest_plugins = [
-    str('_pytest.pytester'),
+    str("_pytest.pytester"),
 ]
 
 log = logging.getLogger(__name__)
@@ -32,24 +30,35 @@ def test_tf(tf):
     log.debug(tf)
 """
 
+
 @patch("tftest.TerraformTest")
-@pytest.mark.parametrize('params,expected_call', [
-    pytest.param(
-        ["./fixtures", './', 'terraform', {"bar": "foo"}],
-        call("./fixtures", './', 'terraform', {"bar": "foo"}),
-        id='args'
-    ),
-    pytest.param(
-        {"tf_dir": "./fixtures", "base_dir": './', "binary": 'terraform', "env": {"bar": "foo"}},
-        call(tf_dir="./fixtures", base_dir='./', binary='terraform', env={"bar": "foo"}),
-        id='kwargs'
-    ),
-    pytest.param(
-        "'./fixtures'",
-        call("./fixtures"),
-        id='arg')
-])
-def test_fixt_arguments(mock_tftest, pytester: Pytester, params, expected_call) -> None:
+@pytest.mark.parametrize(
+    "params,expected_call",
+    [
+        pytest.param(
+            ["./fixtures", "./", "terraform", {"bar": "foo"}],
+            call("./fixtures", "./", "terraform", {"bar": "foo"}),
+            id="args",
+        ),
+        pytest.param(
+            {
+                "tf_dir": "./fixtures",
+                "base_dir": "./",
+                "binary": "terraform",
+                "env": {"bar": "foo"},
+            },
+            call(
+                tf_dir="./fixtures",
+                base_dir="./",
+                binary="terraform",
+                env={"bar": "foo"},
+            ),
+            id="kwargs",
+        ),
+        pytest.param("'./fixtures'", call("./fixtures"), id="arg"),
+    ],
+)
+def test_fixt_arguments(mock_tftest, pytester, params, expected_call):
     pytester.makepyfile(basic_example.format(params))
     reprec = pytester.inline_run()
 

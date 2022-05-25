@@ -4,7 +4,7 @@ import os
 import tftest
 import logging
 import shlex
-import json
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -16,12 +16,12 @@ def pytest_addoption(parser):
     group.addoption(
         "--skip-tf-init",
         action="store_true",
-        help="skips initing testing Terraform module",
+        help="skips initing Terraform configuration",
     )
     group.addoption(
         "--skip-tf-destroy",
         action="store_true",
-        help="skips destroying testing Terraform module",
+        help="skips destroying Terraform configuration",
     )
 
 
@@ -80,7 +80,7 @@ def _init(request, *args, **kwargs):
 
         log.info("Running Terraform init")
         tf.setup(upgrade=True, cleanup_on_exit=cleanup_on_exit)
-        
+
     return tf
 
 
@@ -105,10 +105,12 @@ def terraform_version(request):
 @pytest.fixture(scope="session")
 def tf_factory(request):
     tf_cfgs = []
+
     def _tf(*args, **kwargs):
         tf = _init(request, *args, **kwargs)
         tf_cfgs.append(tf)
         return tf
+
     yield _tf
 
     for tf in tf_cfgs:
@@ -124,7 +126,7 @@ def tf(request, terraform_version: str):
         tf = _init(request, **request.param)
     else:
         tf = _init(request, request.param)
-    
+
     yield tf
-    
+
     tf_destroy(request.config.getoption("skip_tf_destroy"), tf)
