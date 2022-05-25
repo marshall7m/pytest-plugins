@@ -35,11 +35,16 @@ jobs:
       - name: Hooks
         shell: bash
         run: |
+          apt-get -y update
+          apt-get -y install --no-install-recommends git
+
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pre-commit
           pre-commit install
           pre-commit run --all-files
 
   unit:
-    # needs: precommit
+    needs: precommit
     runs-on: ubuntu-latest
     container: python:3.9-slim-buster
     steps:
@@ -53,4 +58,4 @@ jobs:
       - name: Tests
         id: pytest
         shell: bash
-        run: pytest -vv tests/unit
+        run: pytest -vv tests
