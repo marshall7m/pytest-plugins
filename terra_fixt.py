@@ -103,6 +103,13 @@ def terraform_version(request):
 
 
 @pytest.fixture(scope="session")
+def terragrunt_version(request):
+    """Terragrunt version that will be installed and used"""
+    terra_version("terragrunt", request.param, overwrite=True)
+    return request.param
+
+
+@pytest.fixture(scope="session")
 def tf_factory(request):
     tf_cfgs = []
 
