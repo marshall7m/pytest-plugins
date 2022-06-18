@@ -25,7 +25,7 @@ log.setLevel(logging.DEBUG)
 
 @pytest.mark.parametrize("terraform_version", {}, indirect=True)
 def test_version(terraform_version):
-    log.debug('Terraform Version %'.format(terraform_version))
+    log.debug('Expected Terraform version %'.format(terraform_version))
 
     actual_version = json.loads(subprocess.run(
         ["terraform", "--version", "-json"],
