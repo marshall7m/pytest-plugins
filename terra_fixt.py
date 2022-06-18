@@ -4,7 +4,7 @@ import os
 import tftest
 import logging
 import shlex
-
+import requests
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -37,23 +37,26 @@ def terra_version(binary: str, version: str, overwrite=False):
         overwrite: If true, version manager will install and/or switch to the
         specified version even if the binary is found in $PATH.
     """
+
+    if not overwrite:
+        check_version = subprocess.run(
+            shlex.split(f"{binary} --version"), capture_output=True, text=True
+        )
+        if check_version.returncode == 0:
+            log.info(f"{binary} version: {check_version.stdout} " "found in $PATH")
+            return
+        else:
+            log.info(f"{binary} version: {check_version.stdout} not found in $PATH")
+    if binary == "terragrunt" and version == "latest":
+        version = requests.get(
+            "https://warrensbox.github.io/terragunt-versions-list/"
+        ).json()["Versions"][0]
+
     cmds = {
         "terraform": f"tfenv install {version} && tfenv use {version}",
         "terragrunt": f"tgswitch {version}",
     }
-
-    if not overwrite:
-        check_version = subprocess.run(
-            shlex.split("{binary} --version"), capture_output=True, text=True
-        )
-        if check_version.returncode == 0:
-            log.info(
-                "Terraform found in $PATH -- " "skip tfenv Terraform install",
-            )
-            log.info(f"Terraform Version: {check_version.stdout}")
-            return
-        else:
-            log.info("{binary} not found in $PATH -- installing {binary}")
+    log.debug(f"Running command: {cmds[binary]}")
     try:
         subprocess.run(
             cmds[binary],
