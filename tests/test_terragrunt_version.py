@@ -52,3 +52,33 @@ def test_terragrunt_version(pytester):
     pytester.makepyfile(basic_example)
     reprec = pytester.inline_run()
     reprec.assertoutcome(passed=2, failed=1)
+
+
+def test_terragrunt_latest(pytester):
+    """
+    Ensure that the workaround for `tgswitch latest` is working
+    """
+    pytester.makepyfile(
+        """
+    import pytest
+    import logging
+    import sys
+
+    log = logging.getLogger(__name__)
+    stream = logging.StreamHandler(sys.stdout)
+    log.addHandler(stream)
+    log.setLevel(logging.DEBUG)
+
+
+    @pytest.mark.parametrize(
+        "terragrunt_version",
+        ["latest"],
+        indirect=True
+    )
+    def test_version(terragrunt_version):
+        pass
+    """
+    )
+
+    reprec = pytester.inline_run()
+    reprec.assertoutcome(passed=1)
