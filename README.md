@@ -77,3 +77,6 @@ Install via Pip:
 ```
 pip install pytest-terra-fixt-marshall7m
 ```
+
+## TODO:
+- Create a wrapper function over tf.apply(auto_approve=True) and add a `cache_for_teardown=True` arg to cache the apply arguments so they can be used for running tf.destroy(). This will prevent the error of missing variables for tf.destroy() within the `tf` fixture tearodwn since the tf.apply() args will be passed to destroy()
