@@ -11,6 +11,8 @@ tar -zxf /tmp/tfenv.tar.gz -C /tmp
 mkdir /usr/local/.tfenv && mv /tmp/tfenv-${TFENV_VERSION}/* /usr/local/.tfenv && chmod u+x /usr/local/.tfenv/bin/tfenv
 echo "/usr/local/.tfenv/bin" >> $GITHUB_PATH
 
+wget -q -O - https://raw.githubusercontent.com/warrensbox/tgswitch/release/install.sh | bash -s -- -b /usr/local/bin -d "${TGSWITCH_VERSION}"
+
 chmod u+x /usr/local/bin/*
 apt-get clean
 rm -rf /var/lib/apt/lists/*
