@@ -6,6 +6,14 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--skip-teardown",
+        action="store",
+        help="skips teardown for every terra and terra_factory fixture",
+    )
+
+
 class TfTestCache:
     def __init__(self, **kwargs):
         if kwargs["binary"].endswith("terraform"):
@@ -54,8 +62,11 @@ def terra(request, terra_cache):
     if cfg.get("use_cache", False):
         log.debug("Getting results from cache")
         yield cache.get_cache(cfg["command"])
+
+    if request.config.getoption("skip_teardown") is not None:
+        skip = request.config.getoption("skip_teardown") == "true"
     else:
-        yield cache.run_terra_cmd(cfg["command"], **cfg["extra_args"])
+        skip = request.param.get("skip_teardown", False)
 
     if cfg.get("skip_teardown", False):
         log.debug(f"Skipping teardown for {cache.tfdir}")
@@ -72,7 +83,11 @@ def terra_factory(terra_cache):
         cache_kwargs = [kwarg for kwarg in cfg if kwarg not in terra_kwargs]
         cache = terra_cache(cache_kwargs)
 
-        if not cfg.get("skip_teardown", False):
+        if request.config.getoption("skip_teardown") is not None:
+            skip = request.config.getoption("skip_teardown") == "true"
+        else:
+            skip = request.param.get("skip_teardown", False)
+        if not skip:
             teardowns.append(cache.tfdir)
 
         if cfg.get("use_cache", False):
