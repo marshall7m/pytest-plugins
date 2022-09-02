@@ -55,7 +55,8 @@ jobs:
       - name: Install deps
         id: install
         shell: bash
-        run: bash install.sh
+        run: |
+          python3 -m pip install --upgrade -e ".[testing]"
 
       - name: Tests
         id: pytest
