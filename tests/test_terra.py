@@ -10,30 +10,41 @@ pytest_plugins = [
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-kwargs_params = [pytest.param(param, id=p_id) for p_id, param in kwargs.items()]
-
-
 @patch("terra_fixt.TfTestCache")
-@pytest.mark.parametrize("params", kwargs_params)
-def test_kwargs(mock_tftest_cache, pytester, params):
-    pytester.makepyfile(basic_terra_py.format(params))
+def test_kwargs(mock_tftest_cache, pytester):
+    pytester.makepyfile(basic_terra_py.format(kwargs))
     reprec = pytester.inline_run()
 
-    reprec.assertoutcome(passed=1)
+    reprec.assertoutcome(passed=len(kwargs))
 
 
 @patch("terra_fixt.TfTestCache.get_cache")
 @patch("tftest.TerraformTest.destroy")
-def test_use_cache(mock_destroy, mock_get_cache, pytester):
-    kwargs = [
-        {"binary": "terraform", "use_cache": True, "tfdir": "foo", "command": "plan"}
+@patch("tftest.TerraformTest.apply")
+def test_use_cache(mock_apply, mock_destroy, mock_get_cache, pytester):
+    params = [
+        {
+            "binary": "terraform",
+            "use_cache": True,
+            "tfdir": "foo",
+            "command": "plan"
+        },
+        {
+            "binary": "terraform",
+            "use_cache": False,
+            "tfdir": "foo",
+            "command": "apply"
+        }
     ]
-    pytester.makepyfile(basic_terra_py.format(kwargs))
+    pytester.makepyfile(basic_terra_py.format(params))
     reprec = pytester.inline_run()
 
-    reprec.assertoutcome(passed=1)
-    assert mock_get_cache.call_args_list == [call(kwargs["command"])]
-
+    reprec.assertoutcome(passed=2)
+    for kwargs in params:
+        if kwargs["use_cache"]:
+            assert call(kwargs["command"]) in mock_get_cache.call_args_list
+        else:
+            assert call(kwargs["command"]) not in mock_get_cache.call_args_list            
 
 @patch("terra_fixt.TfTestCache.get_cache")
 @patch("tftest.TerraformTest.destroy")
