@@ -97,7 +97,7 @@ def terra_factory(request, terra_cache):
         if request.config.getoption("skip_teardown") is not None:
             skip = request.config.getoption("skip_teardown") == "true"
         else:
-            skip = request.param.get("skip_teardown", False)
+            skip = cfg.get("skip_teardown", False)
         if not skip:
             teardowns.append(cache.tfdir)
 
