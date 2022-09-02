@@ -1,6 +1,5 @@
-kwargs = {
-    "tf_all": {
-        "binary": "terraform",
+kwargs = [
+    {"binary": "terraform",
         "basedir": "fixture",
         "tfdir": "bar",
         "env": {},
@@ -10,7 +9,7 @@ kwargs = {
         "use_cache": False,
         "extra_args": {"auto_approve": True},
     },
-    "tg_all": {
+    {
         "binary": "terragrunt",
         "basedir": "fixture",
         "tfdir": "bar",
@@ -21,7 +20,7 @@ kwargs = {
         "use_cache": False,
         "extra_args": {"auto_approve": True},
     },
-}
+]
 
 
 basic_terra_py = """
