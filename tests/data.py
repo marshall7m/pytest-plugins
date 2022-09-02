@@ -1,5 +1,6 @@
-kwargs = [
-    {"binary": "terraform",
+all_kwargs = [
+    {
+        "binary": "terraform",
         "basedir": "fixture",
         "tfdir": "bar",
         "env": {},

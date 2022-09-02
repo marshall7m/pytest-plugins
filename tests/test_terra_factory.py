@@ -1,7 +1,6 @@
 import logging
 from unittest.mock import patch, call
-import pytest
-from tests.data import kwargs, basic_terra_factory_py
+from tests.data import all_kwargs, basic_terra_factory_py
 
 pytest_plugins = [
     str("_pytest.pytester"),
@@ -10,10 +9,11 @@ pytest_plugins = [
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
 @patch("tftest.TerraformTest")
 @patch("terra_fixt.TfTestCache")
 def test_factory_kwargs(mock_cache, mock_tftest, pytester):
-    pytester.makepyfile(basic_terra_factory_py.format(kwargs))
+    pytester.makepyfile(basic_terra_factory_py.format(all_kwargs))
     reprec = pytester.inline_run()
 
     reprec.assertoutcome(passed=1)
