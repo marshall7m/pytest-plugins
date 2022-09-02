@@ -7,9 +7,8 @@ kwargs = {
         "tg_run_all": False,
         "command": "apply",
         "skip_teardown": False,
-        "consolidate_teardown": True,
         "use_cache": False,
-        "extra_args": "-auto-approve",
+        "extra_args": {"auto_approve": True},
     },
     "tg_all": {
         "binary": "terragrunt",
@@ -19,10 +18,43 @@ kwargs = {
         "tg_run_all": False,
         "command": "apply",
         "skip_teardown": False,
-        "consolidate_teardown": True,
         "use_cache": False,
-        "extra_args": {
-            "auto_approve": True
-        }
-    }
+        "extra_args": {"auto_approve": True},
+    },
 }
+
+
+basic_terra_py = """
+import pytest
+import logging
+import sys
+import tftest
+
+log = logging.getLogger(__name__)
+stream = logging.StreamHandler(sys.stdout)
+log.addHandler(stream)
+log.setLevel(logging.DEBUG)
+
+
+@pytest.mark.parametrize("terra", {}, indirect=['terra'])
+def test_terra_param(terra):
+    log.debug(terra)
+"""
+
+basic_terra_factory_py = """
+import pytest
+import logging
+import sys
+import tftest
+
+log = logging.getLogger(__name__)
+stream = logging.StreamHandler(sys.stdout)
+log.addHandler(stream)
+log.setLevel(logging.DEBUG)
+
+data = {}
+
+def test_terra_factory(terra_factory):
+    for param in data:
+        terra_factory(**param)
+"""
