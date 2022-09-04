@@ -10,48 +10,53 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-@patch("tftest.TerraformTest")
-@patch("terra_fixt.TfTestCache")
-def test_factory_kwargs(mock_cache, mock_tftest, pytester):
+@patch("tftest.TerraformTest.execute_command")
+def test_factory_kwargs(mock_execute_command, pytester):
     pytester.makepyfile(basic_terra_factory_py.format(all_kwargs))
     reprec = pytester.inline_run()
 
     reprec.assertoutcome(passed=1)
 
 
-@patch("terra_fixt.TfTestCache.get_cache")
-@patch("tftest.TerraformTest.execute_command")
-def test_use_cache(mock_execute, mock_get_cache, terra_factory, pytester):
-    params = [
-        {"binary": "terraform", "use_cache": True, "tfdir": "foo", "command": "plan"},
-        {"binary": "terraform", "use_cache": False, "tfdir": "foo", "command": "apply"},
-    ]
-    pytester.makepyfile(basic_terra_factory_py.format(params))
-    reprec = pytester.inline_run()
-
-    reprec.assertoutcome(passed=1)
-
-    for param in params:
-        if param["use_cache"]:
-            assert call(param["command"]) in mock_get_cache.call_args_list
-        else:
-            assert call(param["command"]) not in mock_get_cache.call_args_list
-
-
-@patch("terra_fixt.TfTestCache.get_cache")
-@patch("tftest.TerraformTest.execute_command")
-def test_skip_teardown(mock_execute, mock_get_cache, pytester):
+@patch("tftest.TerraformTest.plan")
+def test_get_cache(mock_plan, pytester):
     params = [
         {
             "binary": "terraform",
-            "use_cache": True,
+            "put_cache": True,
+            "skip_teardown": True,
+            "get_cache": True,
+            "tfdir": "foo",
+            "command": "plan",
+        },
+        {
+            "binary": "terraform",
+            "get_cache": True,
+            "skip_teardown": True,
+            "tfdir": "foo",
+            "command": "plan",
+        },
+    ]
+    pytester.makepyfile(basic_terra_factory_py.format(params))
+    pytester.inline_run()
+
+    assert len(mock_plan.call_args_list) == 1
+
+
+@patch("tftest.TerraformTest.destroy")
+@patch("tftest.TerraformTest.execute_command")
+def test_skip_teardown(mock_execute, mock_destroy, pytester):
+    params = [
+        {
+            "binary": "terraform",
+            "get_cache": True,
             "tfdir": "foo",
             "command": "plan",
             "skip_teardown": True,
         },
         {
             "binary": "terraform",
-            "use_cache": True,
+            "get_cache": True,
             "tfdir": "foo",
             "command": "plan",
             "skip_teardown": False,
@@ -61,6 +66,4 @@ def test_skip_teardown(mock_execute, mock_get_cache, pytester):
     reprec = pytester.inline_run()
 
     reprec.assertoutcome(passed=1)
-    assert mock_execute.call_args_list == [
-        call("destroy", "-auto-approve", "-no-color")
-    ]
+    assert mock_destroy.call_args_list == [call(auto_approve=True)]
