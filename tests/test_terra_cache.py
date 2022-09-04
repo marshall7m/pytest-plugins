@@ -38,7 +38,6 @@ def test_add_cache(pytester):
 def test_update_cache(pytester):
     pytester.makepyfile(
         """
-    from tftest import TerragruntTest
     def test_foo(terra_cache):
         data = {
             "binary": "terraform",
@@ -47,10 +46,11 @@ def test_update_cache(pytester):
         }
         terra_cache(**data)
 
-        data["binary"] = "terragrunt"
+        updated_env = {"baz": "doo"}
+        data["env"] = updated_env
         terra_cache(**data)
 
-        assert isinstance(terra_cache()["foo/bar"].instance, TerragruntTest)
+        assert terra_cache()["foo/bar"].env == updated_env
     """
     )
     reprec = pytester.inline_run()
