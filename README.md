@@ -13,10 +13,10 @@ With the use of this plugin, users can run Terragrunt and Terraform commands wit
       - `basedir`: Base directory for `tfdir` (defaults to cwd)
       - `env`: Environment variables to pass to the command
       - `skip_teardown`: Skips running fixture's teardown logic
-      - `use_cache`: If `True`, gets command output from `terra_cache` fixture
+      - `get_cache`: If `True`, gets command output from `terra_cache` fixture
       - `extra_args`: Dictionary of extra arguments to pass to the command
    - Setup: Updates cache with selected kwargs provided
-   - Yield: If `use_cache` is `True`, yields output for the input `command` from the `terra_cache` fixture. If `use_cache` is `False`, yields output from the execution of the command
+   - Yield: If `get_cache` is `True`, yields output for the input `command` from the `terra_cache` fixture. If `get_cache` is `False`, yields output from the execution of the command
    - Teardown: Runs `terraform destroy -auto-approve` on the input `tfdir` directory
 
 `terra_factory`: 
@@ -28,17 +28,17 @@ With the use of this plugin, users can run Terragrunt and Terraform commands wit
       - `basedir`: Base directory for `tfdir` (defaults to cwd)
       - `env`: Environment variables to pass to the command
       - `skip_teardown`: Skips running fixture's teardown logic
-      - `use_cache`: If `True`, gets command output from `terra_cache` fixture
+      - `get_cache`: If `True`, gets command output from `terra_cache` fixture
       - `extra_args`: Dictionary of extra arguments to pass to the command
    - Setup: Updates cache with selected kwargs provided
-   - Yield: If `use_cache` is `True`, yields output for the input `command` from the `terra_cache` fixture. If `use_cache` is `False`, yields output from the execution of the command
+   - Yield: If `get_cache` is `True`, yields output for the input `command` from the `terra_cache` fixture. If `get_cache` is `False`, yields output from the execution of the command
    - Teardown: Runs `terraform destroy -auto-approve` on every factory instance's input `tfdir` directory
  
 `terra_cache`: 
    - Scope: Session
    - Setup: Runs `terraform init` on the specified directory
-   - Yield: Factory fixture that returns a `tftest.TerraformTest` object that can run subsequent Terraform commands with
-   - Teardown: Runs `terraform destroy -auto-approve` on the specified directory
+   - Yield: Factory fixture that returns a `tftest.TerraformTest` or `tftest.TerragruntTest` object that can run subsequent methods with
+   - Teardown: Clears cache dictionary
 
 ## CLI Arguments
 
@@ -49,6 +49,30 @@ With the use of this plugin, users can run Terragrunt and Terraform commands wit
    ```
  
 ## Examples
+
+### Returns tftest object
+
+`terra`
+```
+import pytest
+
+@pytest.mark.parametrize("terra", [
+   {
+      "binary": "terraform",
+      "tfdir": "bar",
+      "env": {
+         "TF_LOG": "DEBUG"
+      },
+      "skip_teardown": False,
+   }
+], indirect=['terra'])
+def test_terra_param(terra):
+   terra.apply(auto_approve=True)
+   output = terra.output()
+   assert output["doo"] == "foo"
+```
+
+### Run commands within fixture:
 
 `terra`
 ```
@@ -63,7 +87,7 @@ import pytest
          "TF_LOG": "DEBUG"
       },
       "skip_teardown": False,
-      "use_cache": False,
+      "get_cache": False,
       "extra_args": {"state_out": "/foo"},
    }
 ], indirect=['terra'])
