@@ -45,10 +45,20 @@ def terra_cache():
 
     def _cache(**kwargs):
         if kwargs != {}:
+            if not kwargs["tfdir"].startswith("/"):
+                kwargs["tfdir"] = os.path.join(
+                    kwargs.get("basedir", os.getcwd()), kwargs["tfdir"]
+                )
 
-            cache = TfTestCache(**kwargs)
-            terras[cache.tfdir] = cache
-            return cache
+            if kwargs["tfdir"] in terras.keys():
+                cache_cls = terras[kwargs["tfdir"]]
+                for key, value in kwargs.items():
+                    setattr(cache_cls, key, value)
+                log.debug(cache_cls.binary)
+            else:
+                terras[kwargs["tfdir"]] = TfTestCache(**kwargs)
+
+            return terras[kwargs["tfdir"]]
 
         else:
             return terras
