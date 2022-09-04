@@ -16,6 +16,7 @@ def pytest_addoption(parser):
 
 class TfTestCache:
     def __init__(self, **kwargs):
+        self.cache = {}
         if kwargs["binary"].endswith("terraform"):
             self.instance = tftest.TerraformTest(**kwargs)
         elif kwargs["binary"].endswith("terragrunt"):
@@ -24,13 +25,16 @@ class TfTestCache:
     def __getattr__(self, name):
         return self.instance.__getattribute__(name)
 
-    def get_cache(self, cmd):
-        return getattr(self, f"cached_{cmd}")
+    def run(self, command, put_cache=True, get_cache=False, **extra_args):
+        command = command.replace(" ", "_")
+        if get_cache:
+            if command in self.cache:
+                return self.cache[command]
 
-    def run_terra_cmd(self, cmd, **extra_args):
-        cmd = cmd.replace(" ", "_")
-        out = getattr(self, cmd)(**extra_args)
-        setattr(self, f"cached_{cmd}", out)
+        out = getattr(self, command)(**extra_args)
+
+        if put_cache:
+            self.cache[command] = out
 
         return out
 
