@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import patch, call
+from unittest.mock import patch
 from tests.data import all_kwargs, basic_terra_py
 
 pytest_plugins = [
@@ -18,32 +18,39 @@ def test_kwargs(mock_tftest_cache, pytester):
     reprec.assertoutcome(passed=len(all_kwargs))
 
 
-@patch("terra_fixt.TfTestCache.get_cache")
-@patch("tftest.TerraformTest.destroy")
-@patch("tftest.TerraformTest.apply")
-def test_use_cache(mock_apply, mock_destroy, mock_get_cache, pytester):
+@patch("tftest.TerraformTest.plan")
+def test_get_cache(mock_plan, pytester):
     params = [
-        {"binary": "terraform", "use_cache": True, "tfdir": "foo", "command": "plan"},
-        {"binary": "terraform", "use_cache": False, "tfdir": "foo", "command": "apply"},
+        {
+            "binary": "terraform",
+            "put_cache": True,
+            "skip_teardown": True,
+            "get_cache": True,
+            "tfdir": "foo",
+            "command": "plan",
+        },
+        {
+            "binary": "terraform",
+            "get_cache": True,
+            "skip_teardown": True,
+            "tfdir": "foo",
+            "command": "plan",
+        },
     ]
     pytester.makepyfile(basic_terra_py.format(params))
     reprec = pytester.inline_run()
 
     reprec.assertoutcome(passed=2)
-    for kwargs in params:
-        if kwargs["use_cache"]:
-            assert call(kwargs["command"]) in mock_get_cache.call_args_list
-        else:
-            assert call(kwargs["command"]) not in mock_get_cache.call_args_list
+    assert len(mock_plan.call_args_list) == 1
 
 
-@patch("terra_fixt.TfTestCache.get_cache")
+@patch("terra_fixt.TfTestCache.run")
 @patch("tftest.TerraformTest.destroy")
-def test_skip_teardown(mock_destroy, mock_get_cache, pytester):
+def test_skip_teardown(mock_destroy, mock_run, pytester):
     kwargs = [
         {
             "binary": "terraform",
-            "use_cache": True,
+            "get_cache": True,
             "tfdir": "foo",
             "command": "plan",
             "skip_teardown": True,

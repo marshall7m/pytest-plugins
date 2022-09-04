@@ -8,8 +8,8 @@ def test_get_cache(cmd):
 
     cache = TfTestCache(binary="terraform", tfdir="foo")
     with patch(f"tftest.TerraformTest.{cmd}") as mock_cmd:
-        output = cache.run_terra_cmd(cmd)
-        cached_output = cache.get_cache(cmd)
+        output = cache.run(cmd)
+        cached_output = cache.run(cmd, get_cache=True)
 
         assert output == cached_output
 
