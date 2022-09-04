@@ -1,24 +1,23 @@
 all_kwargs = [
     {
         "binary": "terraform",
-        "basedir": "fixture",
+        "basedir": "/fixture",
         "tfdir": "bar",
         "env": {},
-        "tg_run_all": False,
         "command": "apply",
         "skip_teardown": False,
-        "use_cache": False,
+        "get_cache": False,
         "extra_args": {"auto_approve": True},
     },
     {
         "binary": "terragrunt",
-        "basedir": "fixture",
+        "basedir": "/fixture",
         "tfdir": "bar",
         "env": {},
         "tg_run_all": False,
         "command": "apply",
         "skip_teardown": False,
-        "use_cache": False,
+        "get_cache": False,
         "extra_args": {"auto_approve": True},
     },
 ]
