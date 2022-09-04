@@ -56,21 +56,23 @@ def terra_cache():
 
 terra_kwargs = ["command", "skip_teardown", "use_cache", "extra_args"]
 
-
 @pytest.fixture
 def terra(request, terra_cache):
-    cache_kwargs = {
+    tftest_kwargs = {
         key: value for key, value in request.param.items() if key not in terra_kwargs
     }
-    cache = terra_cache(**cache_kwargs)
+    terra_cls = terra_cache(**tftest_kwargs)
 
-    if request.param.get("use_cache", False):
-        log.info("Getting results from cache")
-        yield cache.get_cache(request.param["command"])
+    if request.param.get("command"):
+        if request.param.get("use_cache", False):
+            log.info("Getting results from cache")
+            yield terra_cls.get_cache(request.param["command"])
+        else:
+            yield terra_cls.run_terra_cmd(
+                request.param["command"], **request.param.get("extra_args", {})
+            )
     else:
-        yield cache.run_terra_cmd(
-            request.param["command"], **request.param.get("extra_args", {})
-        )
+        yield terra_cls
 
     if request.config.getoption("skip_teardown") is not None:
         skip = request.config.getoption("skip_teardown") == "true"
@@ -78,10 +80,10 @@ def terra(request, terra_cache):
         skip = request.param.get("skip_teardown", False)
 
     if skip:
-        log.info(f"Skipping teardown for {cache.tfdir}")
+        log.info(f"Skipping teardown for {terra_cls.tfdir}")
     else:
-        log.info(f"Tearing down: {cache.tfdir}")
-        cache.destroy(auto_approve=True)
+        log.info(f"Tearing down: {terra_cls.tfdir}")
+        terra_cls.destroy(auto_approve=True)
 
 
 @pytest.fixture(scope="session")
@@ -89,23 +91,26 @@ def terra_factory(request, terra_cache):
     teardowns = []
 
     def _terra_factory(**cfg):
-        cache_kwargs = {
+        tftest_kwargs = {
             key: value for key, value in cfg.items() if key not in terra_kwargs
         }
-        cache = terra_cache(**cache_kwargs)
+        terra_cls = terra_cache(**tftest_kwargs)
 
         if request.config.getoption("skip_teardown") is not None:
             skip = request.config.getoption("skip_teardown") == "true"
         else:
             skip = cfg.get("skip_teardown", False)
         if not skip:
-            teardowns.append(cache.tfdir)
-
-        if cfg.get("use_cache", False):
-            log.info("Getting results from cache")
-            return cache.get_cache(cfg["command"])
+            teardowns.append(terra_cls.tfdir)
+        
+        if cfg.get("command"):
+            if cfg.get("use_cache", False):
+                log.info("Getting results from cache")
+                return terra_cls.get_cache(cfg["command"])
+            else:
+                return terra_cls.run_terra_cmd(cfg["command"], **cfg.get("extra_args", {}))
         else:
-            return cache.run_terra_cmd(cfg["command"], **cfg.get("extra_args", {}))
+            return terra_cls
 
     yield _terra_factory
 
