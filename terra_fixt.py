@@ -56,6 +56,7 @@ def terra_cache():
 
 terra_kwargs = ["command", "skip_teardown", "use_cache", "extra_args"]
 
+
 @pytest.fixture
 def terra(request, terra_cache):
     tftest_kwargs = {
@@ -102,13 +103,15 @@ def terra_factory(request, terra_cache):
             skip = cfg.get("skip_teardown", False)
         if not skip:
             teardowns.append(terra_cls.tfdir)
-        
+
         if cfg.get("command"):
             if cfg.get("use_cache", False):
                 log.info("Getting results from cache")
                 return terra_cls.get_cache(cfg["command"])
             else:
-                return terra_cls.run_terra_cmd(cfg["command"], **cfg.get("extra_args", {}))
+                return terra_cls.run_terra_cmd(
+                    cfg["command"], **cfg.get("extra_args", {})
+                )
         else:
             return terra_cls
 
