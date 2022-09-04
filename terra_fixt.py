@@ -68,7 +68,7 @@ def terra_cache():
     terras = {}
 
 
-terra_kwargs = ["command", "skip_teardown", "use_cache", "extra_args"]
+terra_kwargs = ["command", "skip_teardown", "get_cache", "put_cache", "extra_args"]
 
 
 @pytest.fixture
@@ -79,13 +79,12 @@ def terra(request, terra_cache):
     terra_cls = terra_cache(**tftest_kwargs)
 
     if request.param.get("command"):
-        if request.param.get("use_cache", False):
-            log.info("Getting results from cache")
-            yield terra_cls.get_cache(request.param["command"])
-        else:
-            yield terra_cls.run_terra_cmd(
-                request.param["command"], **request.param.get("extra_args", {})
-            )
+        yield terra_cls.run(
+            command=request.param["command"],
+            put_cache=request.param.get("put_cache"),
+            get_cache=request.param.get("get_cache"),
+            **request.param.get("extra_args", {}),
+        )
     else:
         yield terra_cls
 
@@ -115,22 +114,21 @@ def terra_factory(request, terra_cache):
             skip = request.config.getoption("skip_teardown") == "true"
         else:
             skip = cfg.get("skip_teardown", False)
+
         if not skip:
             teardowns.append(terra_cls.tfdir)
 
         if cfg.get("command"):
-            if cfg.get("use_cache", False):
-                log.info("Getting results from cache")
-                return terra_cls.get_cache(cfg["command"])
-            else:
-                return terra_cls.run_terra_cmd(
-                    cfg["command"], **cfg.get("extra_args", {})
-                )
+            return terra_cls.run(
+                command=cfg["command"],
+                put_cache=cfg.get("put_cache"),
+                get_cache=cfg.get("get_cache"),
+                **cfg.get("extra_args", {}),
+            )
         else:
             return terra_cls
 
     yield _terra_factory
-
     for path in teardowns:
         log.info(f"Tearing down: {path}")
         terra_cache()[path].destroy(auto_approve=True)
