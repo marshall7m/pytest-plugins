@@ -72,7 +72,7 @@ def terra_cache():
 terra_kwargs = ["command", "skip_teardown", "get_cache", "put_cache", "extra_args"]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def terra(request, terra_cache):
     tftest_kwargs = {
         key: value for key, value in request.param.items() if key not in terra_kwargs
