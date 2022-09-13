@@ -1,7 +1,6 @@
 import pytest
 import tftest
 import logging
-import os
 import json
 from hashlib import sha1
 
@@ -16,7 +15,9 @@ def pytest_addoption(parser):
         help="skips teardown for every `terra` fixture",
     )
 
+
 terra_kwargs = ["skip_teardown"]
+
 
 @pytest.fixture(scope="session")
 def terra(request):
@@ -41,15 +42,20 @@ def terra(request):
         log.info(f"Tearing down: {terra_cls.tfdir}")
         terra_cls.destroy(auto_approve=True)
 
+
 def _execute_command(request, terra, cmd):
     cmd_kwargs = getattr(request, "param").get(terra.tfdir, getattr(request, "param"))
     params = {**terra.__dict__, **cmd_kwargs}
     log.debug(f"Hash dict:\n{params}")
     # use json.dumps to preserve order in nested dict values
-    param_hash = sha1(json.dumps(params, sort_keys=True, default=str).encode()).hexdigest()
+    param_hash = sha1(
+        json.dumps(params, sort_keys=True, default=str).encode()
+    ).hexdigest()
     log.debug(f"Param hash: {param_hash}")
-    
-    cache_key = request.config.cache.makedir("terra") + (terra.tfdir + "/" + cmd + "-" + param_hash)
+
+    cache_key = request.config.cache.makedir("terra") + (
+        terra.tfdir + "/" + cmd + "-" + param_hash
+    )
     log.debug(f"Cache key: {cache_key}")
     cache_value = request.config.cache.get(cache_key, None)
 
@@ -68,13 +74,16 @@ def _execute_command(request, terra, cmd):
 def terra_setup(terra, request):
     return _execute_command(request, terra, "setup")
 
+
 @pytest.fixture(scope="session")
 def terra_plan(terra_setup, terra, request):
     return _execute_command(request, terra, "plan")
 
+
 @pytest.fixture(scope="session")
 def terra_apply(terra_setup, terra, request):
     return _execute_command(request, terra, "apply")
+
 
 @pytest.fixture(scope="session")
 def terra_output(terra, request):
