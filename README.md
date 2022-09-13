@@ -1,10 +1,10 @@
 # pytest-terra-fixt
  
-With the use of this plugin, users can run Terragrunt and Terraform commands within parametrizable Pytest fixtures. Under the hood, the fixtures within this plugin use the awesome [tftest](https://github.com/GoogleCloudPlatform/terraform-python-testing-helper) Python package. In addition, given the lengthy time it takes to setup Terraform configurations, the fixtures use the PyTest built-in [config.cache](https://docs.pytest.org/en/7.1.x/how-to/cache.html#cache) fixture to cache Terraform results that can be accessed across PyTest sessions.
+With the use of this plugin, users can run Terragrunt and Terraform commands within parametrizable Pytest fixtures. Under the hood, the fixtures within this plugin use the awesome [tftest](https://github.com/GoogleCloudPlatform/terraform-python-testing-helper) Python package. In addition, given the lengthy time it takes to set up Terraform configurations, the fixtures use the PyTest built-in [config.cache](https://docs.pytest.org/en/7.1.x/how-to/cache.html#cache) fixture to cache Terraform results that can be accessed across PyTest sessions.
 
 ## Fixtures
 
-All fixtures below can be parametrized via (`pytest.mark.parametrize("<fixture>", [{<input>}]))
+All fixtures below can be parametrized via (`@pytest.mark.parametrize()`)
 
 `terra`:
    - Scope: Session
