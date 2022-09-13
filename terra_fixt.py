@@ -44,7 +44,9 @@ def terra(request):
 
 
 def _execute_command(request, terra, cmd):
-    cmd_kwargs = getattr(request, "param", {}).get(terra.tfdir, getattr(request, "param", {}))
+    cmd_kwargs = getattr(request, "param", {}).get(
+        terra.tfdir, getattr(request, "param", {})
+    )
     params = {**terra.__dict__, **cmd_kwargs}
     log.debug(f"Hash dict:\n{params}")
     # use json.dumps to preserve order in nested dict values
