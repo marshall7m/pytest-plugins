@@ -2,6 +2,8 @@ import pytest
 import tftest
 import logging
 import os
+import json
+from hashlib import sha1
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -11,83 +13,22 @@ def pytest_addoption(parser):
     parser.addoption(
         "--skip-teardown",
         action="store",
-        help="skips teardown for every terra and terra_factory fixture",
+        help="skips teardown for every `terra` fixture",
     )
 
-
-class TfTestCache:
-    def __init__(self, **kwargs):
-        self.cache = {}
-        if kwargs["binary"].endswith("terraform"):
-            self.instance = tftest.TerraformTest(**kwargs)
-        elif kwargs["binary"].endswith("terragrunt"):
-            self.instance = tftest.TerragruntTest(**kwargs)
-
-    def __getattr__(self, name):
-        return self.instance.__getattribute__(name)
-
-    def run(self, command, put_cache=True, get_cache=False, **extra_args):
-        command = command.replace(" ", "_")
-        if get_cache:
-            if command in self.cache:
-                return self.cache[command]
-
-        out = getattr(self, command)(**extra_args)
-
-        if put_cache:
-            self.cache[command] = out
-
-        return out
-
+terra_kwargs = ["skip_teardown"]
 
 @pytest.fixture(scope="session")
-def terra_cache():
-    terras = {}
-
-    def _cache(**kwargs):
-        if kwargs != {}:
-            if not kwargs["tfdir"].startswith("/"):
-                kwargs["tfdir"] = os.path.join(
-                    kwargs.get("basedir", os.getcwd()), kwargs["tfdir"]
-                )
-
-            if kwargs["tfdir"] in terras.keys():
-                cache_cls = terras[kwargs["tfdir"]]
-                for key, value in kwargs.items():
-                    setattr(cache_cls, key, value)
-                log.debug(cache_cls.binary)
-            else:
-                terras[kwargs["tfdir"]] = TfTestCache(**kwargs)
-
-            return terras[kwargs["tfdir"]]
-
-        else:
-            return terras
-
-    yield _cache
-
-    terras = {}
-
-
-terra_kwargs = ["command", "skip_teardown", "get_cache", "put_cache", "extra_args"]
-
-
-@pytest.fixture(scope="session")
-def terra(request, terra_cache):
+def terra(request):
     tftest_kwargs = {
         key: value for key, value in request.param.items() if key not in terra_kwargs
     }
-    terra_cls = terra_cache(**tftest_kwargs)
+    if request.param["binary"].endswith("terraform"):
+        terra_cls = tftest.TerraformTest(**tftest_kwargs)
+    elif request.param["binary"].endswith("terragrunt"):
+        terra_cls = tftest.TerragruntTest(**tftest_kwargs)
 
-    if request.param.get("command"):
-        yield terra_cls.run(
-            command=request.param["command"],
-            put_cache=request.param.get("put_cache"),
-            get_cache=request.param.get("get_cache"),
-            **request.param.get("extra_args", {}),
-        )
-    else:
-        yield terra_cls
+    yield terra_cls
 
     if request.config.getoption("skip_teardown") is not None:
         skip = request.config.getoption("skip_teardown") == "true"
@@ -100,36 +41,41 @@ def terra(request, terra_cache):
         log.info(f"Tearing down: {terra_cls.tfdir}")
         terra_cls.destroy(auto_approve=True)
 
+def _execute_command(request, terra, cmd):
+    cmd_kwargs = getattr(request, "param").get(terra.tfdir, getattr(request, "param"))
+    params = {**terra.__dict__, **cmd_kwargs}
+    log.debug(f"Hash dict:\n{params}")
+    # use json.dumps to preserve order in nested dict values
+    param_hash = sha1(json.dumps(params, sort_keys=True, default=str).encode()).hexdigest()
+    log.debug(f"Param hash: {param_hash}")
+    
+    cache_key = request.config.cache.makedir("terra") + (terra.tfdir + "/" + cmd + "-" + param_hash)
+    log.debug(f"Cache key: {cache_key}")
+    cache_value = request.config.cache.get(cache_key, None)
+
+    if cache_value:
+        log.info("Getting output from cache")
+        return cache_value
+    else:
+        log.info("Running command")
+        out = getattr(terra, cmd)(**cmd_kwargs)
+        log.debug(out)
+        request.config.cache.set(cache_key, out)
+        return out
+
 
 @pytest.fixture(scope="session")
-def terra_factory(request, terra_cache):
-    teardowns = []
+def terra_setup(terra, request):
+    return _execute_command(request, terra, "setup")
 
-    def _terra_factory(**cfg):
-        tftest_kwargs = {
-            key: value for key, value in cfg.items() if key not in terra_kwargs
-        }
-        terra_cls = terra_cache(**tftest_kwargs)
+@pytest.fixture(scope="session")
+def terra_plan(terra_setup, terra, request):
+    return _execute_command(request, terra, "plan")
 
-        if request.config.getoption("skip_teardown") is not None:
-            skip = request.config.getoption("skip_teardown") == "true"
-        else:
-            skip = cfg.get("skip_teardown", False)
+@pytest.fixture(scope="session")
+def terra_apply(terra_setup, terra, request):
+    return _execute_command(request, terra, "apply")
 
-        if not skip:
-            teardowns.append(terra_cls.tfdir)
-
-        if cfg.get("command"):
-            return terra_cls.run(
-                command=cfg["command"],
-                put_cache=cfg.get("put_cache"),
-                get_cache=cfg.get("get_cache"),
-                **cfg.get("extra_args", {}),
-            )
-        else:
-            return terra_cls
-
-    yield _terra_factory
-    for path in teardowns:
-        log.info(f"Tearing down: {path}")
-        terra_cache()[path].destroy(auto_approve=True)
+@pytest.fixture(scope="session")
+def terra_output(terra, request):
+    return _execute_command(request, terra, "output")
