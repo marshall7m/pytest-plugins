@@ -47,7 +47,14 @@ def _execute_command(request, terra, cmd):
     cmd_kwargs = getattr(request, "param", {}).get(
         terra.tfdir, getattr(request, "param", {})
     )
-    params = {**{k: v for k, v in terra.__dict__.items() if type(v) in [str, int, bool, dict, list]}, **cmd_kwargs}
+    params = {
+        **{
+            k: v
+            for k, v in terra.__dict__.items()
+            if type(v) in [str, int, bool, dict, list]
+        },
+        **cmd_kwargs,
+    }
 
     param_hash = sha1(
         json.dumps(params, sort_keys=True, default=str).encode("cp037")
