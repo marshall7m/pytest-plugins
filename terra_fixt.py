@@ -2,11 +2,23 @@ import pytest
 import tftest
 import logging
 import json
+import pickle
 from hashlib import sha1
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+class OverrideTfTest(object):
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __getattr__(self, attr):
+        return getattr(self.obj, attr)
+
+def __getstate__(self): 
+    return self.__dict__
+def __setstate__(self, d): 
+    self.__dict__.update(d)
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -48,10 +60,9 @@ def _execute_command(request, terra, cmd):
         terra.tfdir, getattr(request, "param", {})
     )
     params = {**terra.__dict__, **cmd_kwargs}
-    log.debug(f"Hash dict:\n{params}")
     # use json.dumps to preserve order in nested dict values
     param_hash = sha1(
-        json.dumps(params, sort_keys=True, default=str).encode()
+        json.dumps(params, sort_keys=True, default=str).encode("utf_16")
     ).hexdigest()
     log.debug(f"Param hash: {param_hash}")
 
@@ -63,12 +74,20 @@ def _execute_command(request, terra, cmd):
 
     if cache_value:
         log.info("Getting output from cache")
-        return cache_value
+        return pickle.loads(cache_value.encode("utf_16"))
     else:
         log.info("Running command")
         out = getattr(terra, cmd)(**cmd_kwargs)
-        log.debug(out)
-        request.config.cache.set(cache_key, out)
+        if out:
+            try:
+                out_bytes = pickle.dumps(out)
+            except KeyError as e:
+                if e.args[0] == "__getstate__":
+                    out.__getstate__ = __getstate__.__get__(out, tftest.TerraformPlanOutput)
+                    out.__setstate__ = __setstate__.__get__(out, tftest.TerraformPlanOutput)
+                    out = OverrideTfTest(out)
+                    out_bytes = pickle.dumps(out)
+            request.config.cache.set(cache_key, out_bytes.decode("utf_16"))
         return out
 
 
