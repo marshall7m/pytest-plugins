@@ -1,5 +1,4 @@
 import logging
-import pytest
 import os
 
 pytest_plugins = [
@@ -50,7 +49,7 @@ def pytest_generate_tests(metafunc):
 @pytest.mark.usefixtures("terra")
 class TestTerraCommands:
     # tftest.TerragruntTest methods don't need to be patched since
-    # it uses tftest.TerraformTest methods 
+    # it uses tftest.TerraformTest methods
     @patch("tftest.TerraformTest.setup")
     def test_terra_setup(self, mock_setup, terra_setup):
         assert type(terra_setup) == str
