@@ -28,6 +28,7 @@ def test_terra_param(terra):
 
 @patch("tftest.TerraformTest.destroy")
 def test_kwargs(mock_destroy, pytester):
+    """Ensure all kwargs are supported"""
     params = [
         {
             "binary": "terraform",
@@ -53,6 +54,7 @@ def test_kwargs(mock_destroy, pytester):
 
 @patch("tftest.TerraformTest.destroy")
 def test_skip_teardown_param(mock_destroy, pytester):
+    """Ensure skip_teardown param attribute is implemented"""
     params = [
         {
             "binary": "terraform",
@@ -74,7 +76,7 @@ def test_skip_teardown_param(mock_destroy, pytester):
 
 @patch("tftest.TerraformTest.destroy")
 def test_skip_teardown_flag(mock_destroy, pytester):
-    """Ensure that the --skip-tf-destroy flag is valid"""
+    """Ensure that the --skip-tf-destroy flag is implemented"""
 
     pytester.makepyfile(
         basic_terra_py.format(
