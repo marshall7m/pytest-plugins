@@ -1,8 +1,5 @@
 import logging
-from unittest.mock import patch, call, DEFAULT
-import pytest
 import os
-from terra_fixt import _execute_command
 
 pytest_plugins = [
     str("_pytest.pytester"),
@@ -11,66 +8,128 @@ pytest_plugins = [
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-tf_cmds = ["setup", "plan", "apply", "output"]
+# asserts tftest.TerraformTest method outputs are returned
+test_without_cache_file = """
+import tftest
+import pytest
+import os
+
+def pytest_generate_tests(metafunc):
+    metafunc.parametrize("terra",{terra_param},indirect=True,)
 
 
-@pytest.mark.parametrize(
-    "terra",
-    [{"binary": "terragrunt", "tfdir": "roo", "skip_teardown": True}],
-    indirect=True,
-)
-@pytest.mark.parametrize(
-    "params", [{"color": True}, {os.getcwd() + "/roo": {"color": True}}]
-)
-@pytest.mark.parametrize("cmd", tf_cmds)
-def test__execute_command_with_cache(request, terra, params, cmd):
-    log.info("Clearing pytest cache")
-    request.config.cache.clear_cache(request.config.cache._cachedir)
+@pytest.mark.usefixtures("terra")
+class TestTerraCommands:
+    def test_terra_setup(self, terra_setup):
+        assert type(terra_setup) == str
 
-    with patch.multiple(
-        "tftest.TerragruntTest", **{cmd: DEFAULT for cmd in tf_cmds}
-    ) as mock_cmd:
+    @pytest.mark.parametrize("terra_plan", [{{"output": True}}], indirect=True)
+    def test_terra_plan(self, terra_plan):
+        assert isinstance(terra_plan, tftest.TerraformPlanOutput)
 
-        mock_cmd[cmd].return_value = "mock-" + cmd
-        setattr(request, "param", params)
+    def test_terra_apply(self, terra_apply):
+        assert type(terra_apply) == str
 
-        _execute_command(request, terra, cmd)
-        _execute_command(request, terra, cmd)
+    def test_terra_output(self, terra_output):
+        assert isinstance(terra_output, tftest.TerraformValueDict)
+"""
 
-        if terra.tfdir in params.keys():
-            params = params[terra.tfdir]
+# asserts tftest.TerraformTest method outputs are returned and there associated
+# patches are not called
+test_with_cache_file = """
+import tftest
+import pytest
+import os
+from unittest.mock import patch
 
-        assert mock_cmd[cmd].call_args_list == [call(**params)]
+def pytest_generate_tests(metafunc):
+    metafunc.parametrize("terra",{terra_param},indirect=True,)
 
 
-@pytest.mark.parametrize(
-    "terra",
-    [{"binary": "terragrunt", "tfdir": "roo", "skip_teardown": True}],
-    indirect=True,
-)
-@pytest.mark.parametrize(
-    "params", [{"color": True}, {os.getcwd() + "/roo": {"color": True}}]
-)
-@pytest.mark.parametrize("cmd", tf_cmds)
-def test__execute_command_without_cache(request, terra, params, cmd):
-    log.info("Clearing pytest cache")
-    request.config.cache.clear_cache(request.config.cache._cachedir)
+@pytest.mark.usefixtures("terra")
+class TestTerraCommands:
+    # tftest.TerragruntTest methods don't need to be patched since
+    # it uses tftest.TerraformTest methods
+    @patch("tftest.TerraformTest.setup")
+    def test_terra_setup(self, mock_setup, terra_setup):
+        assert type(terra_setup) == str
+        assert mock_setup.call_args_list == []
 
-    with patch.multiple(
-        "tftest.TerragruntTest", **{cmd: DEFAULT for cmd in tf_cmds}
-    ) as mock_cmd:
+    @pytest.mark.parametrize("terra_plan", [{{"output": True}}], indirect=True)
+    @patch("tftest.TerraformTest.plan")
+    def test_terra_plan(self, mock_plan, terra_plan):
+        assert isinstance(terra_plan, tftest.TerraformPlanOutput)
+        assert mock_plan.call_args_list == []
 
-        mock_cmd[cmd].return_value = "mock-" + cmd
-        setattr(request, "param", params)
+    @patch("tftest.TerraformTest.apply")
+    def test_terra_apply(self, mock_apply, terra_apply):
+        assert type(terra_apply) == str
+        assert mock_apply.call_args_list == []
 
-        _execute_command(request, terra, cmd)
 
-        log.info("Clearing pytest cache")
-        request.config.cache.clear_cache(request.config.cache._cachedir)
+    @patch("tftest.TerraformTest.output")
+    def test_terra_output(self, mock_output, terra_output, terra):
+        assert isinstance(terra_output, tftest.TerraformValueDict)
+        assert mock_output.call_args_list == []
+"""
 
-        _execute_command(request, terra, cmd)
 
-        if terra.tfdir in params.keys():
-            params = params[terra.tfdir]
+def test_terra_fixt_without_cache(pytester):
+    """Ensure terra command fixtures run without error"""
+    pytester.makepyfile(
+        test_without_cache_file.format(
+            terra_param=[
+                {
+                    "binary": "terraform",
+                    "tfdir": os.path.dirname(__file__) + "/fixtures",
+                },
+                {
+                    "binary": "terragrunt",
+                    "tfdir": os.path.dirname(__file__) + "/fixtures",
+                },
+            ]
+        )
+    )
+    log.info("Running test file without cache")
+    reprec = pytester.inline_run("--cache-clear")
+    reprec.assertoutcome(passed=sum(reprec.countoutcomes()))
 
-        assert mock_cmd[cmd].call_args_list == [call(**params), call(**params)]
+
+def test_terra_fixt_with_cache(pytester):
+    """Ensure cache is used for subsequent pytest session"""
+    log.info("Running test file without cache")
+    pytester.makepyfile(
+        test_without_cache_file.format(
+            terra_param=[
+                {
+                    "binary": "terraform",
+                    "tfdir": os.path.dirname(__file__) + "/fixtures",
+                },
+                {
+                    "binary": "terragrunt",
+                    "tfdir": os.path.dirname(__file__) + "/fixtures",
+                },
+            ]
+        )
+    )
+    # --cache-clear removes .pytest_cache cache files
+    reprec = pytester.inline_run("--cache-clear")
+    reprec.assertoutcome(passed=sum(reprec.countoutcomes()))
+
+    log.info("Running test file with cache")
+    pytester.makepyfile(
+        test_with_cache_file.format(
+            terra_param=[
+                {
+                    "binary": "terraform",
+                    "tfdir": os.path.dirname(__file__) + "/fixtures",
+                },
+                {
+                    "binary": "terragrunt",
+                    "tfdir": os.path.dirname(__file__) + "/fixtures",
+                },
+            ]
+        )
+    )
+    reprec = pytester.inline_run()
+    reprec.assertoutcome(passed=sum(reprec.countoutcomes()))

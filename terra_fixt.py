@@ -2,10 +2,13 @@ import pytest
 import tftest
 import logging
 import json
+import pickle
 from hashlib import sha1
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+terra_kwargs = ["skip_teardown"]
 
 
 def pytest_addoption(parser):
@@ -14,9 +17,6 @@ def pytest_addoption(parser):
         action="store",
         help="skips teardown for every `terra` fixture",
     )
-
-
-terra_kwargs = ["skip_teardown"]
 
 
 @pytest.fixture(scope="session")
@@ -47,15 +47,21 @@ def _execute_command(request, terra, cmd):
     cmd_kwargs = getattr(request, "param", {}).get(
         terra.tfdir, getattr(request, "param", {})
     )
-    params = {**terra.__dict__, **cmd_kwargs}
-    log.debug(f"Hash dict:\n{params}")
-    # use json.dumps to preserve order in nested dict values
+    params = {
+        **{
+            k: v
+            for k, v in terra.__dict__.items()
+            if type(v) in [str, int, bool, dict, list]
+        },
+        **cmd_kwargs,
+    }
+
     param_hash = sha1(
-        json.dumps(params, sort_keys=True, default=str).encode()
+        json.dumps(params, sort_keys=True, default=str).encode("cp037")
     ).hexdigest()
     log.debug(f"Param hash: {param_hash}")
 
-    cache_key = request.config.cache.makedir("terra") + (
+    cache_key = request.config.cache.makedir("tftest") + (
         terra.tfdir + "/" + cmd + "-" + param_hash
     )
     log.debug(f"Cache key: {cache_key}")
@@ -63,12 +69,12 @@ def _execute_command(request, terra, cmd):
 
     if cache_value:
         log.info("Getting output from cache")
-        return cache_value
+        return pickle.loads(cache_value.encode("cp037"))
     else:
         log.info("Running command")
         out = getattr(terra, cmd)(**cmd_kwargs)
-        log.debug(out)
-        request.config.cache.set(cache_key, out)
+        if out:
+            request.config.cache.set(cache_key, pickle.dumps(out).decode("cp037"))
         return out
 
 

@@ -22,23 +22,21 @@ on:
       - README.md
 
 env:
-  PYTEST_ADDOPTS: --color=yes
-  TFENV_VERSION: 2.2.2
-  TGSWITCH_VERSION: 0.5.389
-
+  PYTHON_VERSION: 3.9
 jobs:
   precommit:
     runs-on: ubuntu-latest
-    container: bitnami/git:2.35.1
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Python
+        id: python-setup
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Hooks
         shell: bash
         run: |
-          apt-get -y update
-          apt-get -y install --no-install-recommends python3-pip
-
           python3 -m pip install --upgrade pip
           python3 -m pip install pre-commit
 
@@ -46,17 +44,30 @@ jobs:
           pre-commit run --all-files
 
   unit:
-    needs: precommit
     runs-on: ubuntu-latest
-    container: python:3.9-slim-buster
+    env:
+      PYTEST_ADDOPTS: --color=yes
+      TERRAFORM_VERSION: 1.2.6
+      TERRAGRUNT_VERSION: 0.38.9
     steps:
       - uses: actions/checkout@v3
-
+      - name: Set up Python
+        id: python-setup
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: Install deps
         id: install
         shell: bash
         run: |
+          python3 -m pip install --upgrade pip
           python3 -m pip install --upgrade -e ".[testing]"
+
+          wget -q -O /tmp/terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+          unzip -q /tmp/terraform.zip
+          mv $(unzip -qql /tmp/terraform.zip | head -n1 | tr -s ' ' | cut -d' ' -f5-) /usr/local/bin/
+          wget -q -O /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_amd64
+          chmod +x /usr/local/bin/terragrunt /usr/local/bin/terraform
 
       - name: Tests
         id: pytest
