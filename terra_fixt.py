@@ -61,7 +61,7 @@ def _execute_command(request, terra, cmd):
     ).hexdigest()
     log.debug(f"Param hash: {param_hash}")
 
-    cache_key = request.config.cache.makedir("terra") + (
+    cache_key = request.config.cache.makedir("tftest") + (
         terra.tfdir + "/" + cmd + "-" + param_hash
     )
     log.debug(f"Cache key: {cache_key}")
